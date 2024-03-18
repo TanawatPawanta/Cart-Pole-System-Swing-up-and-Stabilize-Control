@@ -49,19 +49,21 @@
 
 /* USER CODE BEGIN PV */
 Encoder Pole_encoder;
+Encoder Cart_encoder;
+
 int16_t Pole_QEI_read = 0;
 uint16_t Cart_QEI_read = 0;
 int16_t deg = 0;
 int16_t deg_m1 = 0;
 int16_t ddeg = 0;
-uint8_t TxBuffer[7];
+uint8_t TxBuffer[11];
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-void ToSimulink(uint8_t header, int16_t* data1, int16_t* data2);
+void ToSimulink(uint8_t header, Encoder* pole_encoder, Encoder* cart_encoder);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -105,7 +107,9 @@ int main(void)
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_1|TIM_CHANNEL_2);
+  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1|TIM_CHANNEL_2);
   Encoder_init(&Pole_encoder, &htim1, 100);
+  Encoder_init(&Cart_encoder, &htim2, 100);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -116,24 +120,27 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  static uint32_t timestamp = 0;
-	  Pole_QEI_read = __HAL_TIM_GET_COUNTER(&htim1);
-	  Encoder_getFeedback(&Pole_encoder);
+
+
 	  if(HAL_GetTick()>=timestamp)
 	  {
 			timestamp = HAL_GetTick() + 10; // 100 hz
-			if(Pole_QEI_read<=2000)
-			{
-//				deg = (Pole_QEI_read*0.09)*100;
-				deg = Pole_QEI_read*9;
-			}
-			else
-			{
-//				deg = ((Pole_QEI_read-4000)*0.09)*100;
-				deg = (Pole_QEI_read-4000)*9;
-			}
-			ddeg = (deg - deg_m1);
-			deg_m1 = deg;
-			ToSimulink(61, &Pole_encoder.QEI_read, &ddeg);
+			Pole_pulse2degree(&Pole_encoder);
+			Encoder_getFeedback(&Pole_encoder);
+			Encoder_getFeedback(&Cart_encoder);
+//			if(Pole_QEI_read<=2000)
+//			{
+////				deg = (Pole_QEI_read*0.09)*100;
+//				deg = Pole_QEI_read*9;
+//			}
+//			else
+//			{
+////				deg = ((Pole_QEI_read-4000)*0.09)*100;
+//				deg = (Pole_QEI_read-4000)*9;
+//			}
+//			ddeg = (deg - deg_m1);
+//			deg_m1 = deg;
+			ToSimulink(61, &Pole_encoder, &Cart_encoder);
 //			TxBuffer[0] = 61; // header
 //			TxBuffer[1] = Pole_QEI_read & 0xff;
 //			TxBuffer[2] = (Pole_QEI_read & 0xff00) >> 8;
@@ -197,17 +204,24 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-void ToSimulink(uint8_t header, int16_t* data1, int16_t* data2)
+void ToSimulink(uint8_t header, Encoder* pole_encoder, Encoder* cart_encoder)
 {
 	TxBuffer[0] = header; // header
-	TxBuffer[1] = *data1 & 0xff;
-	TxBuffer[2] = (*data1 & 0xff00) >> 8;
+	TxBuffer[1] = pole_encoder->QEI_read & 0xff;
+	TxBuffer[2] = (pole_encoder->QEI_read & 0xff00) >> 8;
 
-	TxBuffer[3] = *data2 & 0xff;
-	TxBuffer[4] = (*data2 & 0xff00) >> 8;
-	TxBuffer[5] = 10; // /n
+	TxBuffer[3] = pole_encoder->diff_deg & 0xff;
+	TxBuffer[4] = (pole_encoder->diff_deg & 0xff00) >> 8;
 
-	HAL_UART_Transmit_DMA(&huart2,TxBuffer, 6);
+	TxBuffer[5] = cart_encoder->QEI_read & 0xff;
+	TxBuffer[6] = (cart_encoder->QEI_read & 0xff00) >> 8;
+
+	TxBuffer[7] = cart_encoder->diff_QEI & 0xff;
+	TxBuffer[8] = (cart_encoder->diff_QEI & 0xff00) >> 8;
+
+	TxBuffer[9] = 10; // /n
+
+	HAL_UART_Transmit_DMA(&huart2,TxBuffer, 10);
 }
 
 /* USER CODE END 4 */
