@@ -9,7 +9,7 @@
 #define INC_ENCODER_H_
 #include "main.h"
 #include "tim.h"
-typedef struct EncoderVar
+typedef struct EncoderVariables
 {
 	int16_t QEI_read;
 	int16_t QEI_read_m1;

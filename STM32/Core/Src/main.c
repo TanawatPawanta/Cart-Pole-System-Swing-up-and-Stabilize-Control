@@ -28,6 +28,7 @@
 /* USER CODE BEGIN Includes */
 #include "Serial_comm.h"
 #include "Encoder.h"
+#include "Proximity.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,14 +49,12 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+//Encoder
 Encoder Pole_encoder;
 Encoder Cart_encoder;
-
-int16_t Pole_QEI_read = 0;
-uint16_t Cart_QEI_read = 0;
-int16_t deg = 0;
-int16_t deg_m1 = 0;
-int16_t ddeg = 0;
+//Proximity
+Proximity Prox;
+//UART Communication
 uint8_t TxBuffer[11];
 
 /* USER CODE END PV */
@@ -110,6 +109,7 @@ int main(void)
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1|TIM_CHANNEL_2);
   Encoder_init(&Pole_encoder, &htim1, 100);
   Encoder_init(&Cart_encoder, &htim2, 100);
+  Proximity_init(&Prox);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -128,28 +128,8 @@ int main(void)
 			Pole_pulse2degree(&Pole_encoder);
 			Encoder_getFeedback(&Pole_encoder);
 			Encoder_getFeedback(&Cart_encoder);
-//			if(Pole_QEI_read<=2000)
-//			{
-////				deg = (Pole_QEI_read*0.09)*100;
-//				deg = Pole_QEI_read*9;
-//			}
-//			else
-//			{
-////				deg = ((Pole_QEI_read-4000)*0.09)*100;
-//				deg = (Pole_QEI_read-4000)*9;
-//			}
-//			ddeg = (deg - deg_m1);
-//			deg_m1 = deg;
+
 			ToSimulink(61, &Pole_encoder, &Cart_encoder);
-//			TxBuffer[0] = 61; // header
-//			TxBuffer[1] = Pole_QEI_read & 0xff;
-//			TxBuffer[2] = (Pole_QEI_read & 0xff00) >> 8;
-//
-//			TxBuffer[3] = ddeg & 0xff;
-//			TxBuffer[4] = (ddeg & 0xff00) >> 8;
-//			TxBuffer[5] = 10; // /n
-//
-//			HAL_UART_Transmit_DMA(&huart2,TxBuffer, 6);
 
 	  }
 
@@ -206,22 +186,42 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void ToSimulink(uint8_t header, Encoder* pole_encoder, Encoder* cart_encoder)
 {
+	//send low level data to simulink by UART
+
+	/* create data frame START*/
 	TxBuffer[0] = header; // header
+	//pole position
 	TxBuffer[1] = pole_encoder->QEI_read & 0xff;
 	TxBuffer[2] = (pole_encoder->QEI_read & 0xff00) >> 8;
-
+	//pole difference position
 	TxBuffer[3] = pole_encoder->diff_deg & 0xff;
 	TxBuffer[4] = (pole_encoder->diff_deg & 0xff00) >> 8;
-
+	//cart position
 	TxBuffer[5] = cart_encoder->QEI_read & 0xff;
 	TxBuffer[6] = (cart_encoder->QEI_read & 0xff00) >> 8;
-
+	//cart difference position
 	TxBuffer[7] = cart_encoder->diff_QEI & 0xff;
 	TxBuffer[8] = (cart_encoder->diff_QEI & 0xff00) >> 8;
 
 	TxBuffer[9] = 10; // /n
+	/* create data frame END*/
 
+	//transmit data
 	HAL_UART_Transmit_DMA(&huart2,TxBuffer, 10);
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	/* proximity interrupt START*/
+	if (GPIO_Pin == GPIO_PIN_11)// proximity B
+	{
+		Prox.Prox_B = ~Prox.Prox_B;
+	}
+	if (GPIO_Pin == GPIO_PIN_12)// proximity A
+	{
+		Prox.Prox_A = ~Prox.Prox_A;
+	}
+
 }
 
 /* USER CODE END 4 */
