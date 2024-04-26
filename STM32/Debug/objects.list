@@ -1,4 +1,5 @@
 "./Core/Src/Encoder.o"
+"./Core/Src/Motor.o"
 "./Core/Src/Proximity.o"
 "./Core/Src/Serial_comm.o"
 "./Core/Src/adc.o"
