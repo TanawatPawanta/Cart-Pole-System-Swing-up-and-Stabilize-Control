@@ -10,24 +10,40 @@
 #include "main.h"
 #include "tim.h"
 
+//typedef enum
+//{
+//	Lock,
+//	Free,
+//	CW,
+//	CCW,
+//}MotorMode;
+//
+//typedef struct MotorVariablrs
+//{
+//	int8_t IN_A;	//CW
+//	int8_t IN_B;	//CCW
+//	uint16_t PWM;	// 50,000 pulse max
+//	uint16_t Current;
+//	MotorMode Mode;
+//}Motor;
 typedef enum
 {
-	Lock,
-	Free,
 	CW,
 	CCW,
-}MotorMode;
+	Stop,
+}MotorDir;
 
 typedef struct MotorVariablrs
 {
-	int8_t IN_A;	//CW
-	int8_t IN_B;	//CCW
+	MotorDir Dir;	//direction
 	uint16_t PWM;	// 50,000 pulse max
-	uint16_t Current;
-	MotorMode Mode;
+	float Current;
+	TIM_HandleTypeDef* htim_ch;
 }Motor;
 
-void Motor_init(Motor* motor);
-void Motor_setCommand(Motor* motor, MotorMode mode, uint16_t PWM);
+void Motor_init(Motor* motor, TIM_HandleTypeDef* htim_ch);
+void Motor_setPWM(Motor* motor, uint16_t pwm);
+void Motor_setDir(Motor* motor, MotorDir dir);
+void Motor_run(Motor* motor);
 
 #endif /* INC_MOTOR_H_ */

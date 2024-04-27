@@ -1,2 +1,4 @@
-../Core/Src/Motor.c:9:6:Motor_setCommand	16	static
-../Core/Src/Motor.c:43:6:Motor_init	16	static
+../Core/Src/Motor.c:8:6:Motor_init	16	static
+../Core/Src/Motor.c:15:6:Motor_setPWM	16	static
+../Core/Src/Motor.c:19:6:Motor_setDir	16	static
+../Core/Src/Motor.c:23:6:Motor_run	16	static

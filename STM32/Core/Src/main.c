@@ -51,7 +51,7 @@
 /* USER CODE BEGIN PV */
 //Motor
 Motor Cart_motor;
-MotorMode mode = CW;
+MotorDir dir = CW;
 float gain = 0.5;
 //Encoders
 Encoder Pole_encoder;
@@ -60,7 +60,7 @@ Encoder Cart_encoder;
 Proximity Prox;
 //UART Communication
 uint8_t TxBuffer[11];
-
+uint8_t RxBuffer[5];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -109,13 +109,14 @@ int main(void)
   MX_TIM3_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-
+  //Star UART in DMA mode
+  HAL_UART_Receive_DMA(&huart2, RxBuffer, 4);
   //Start Timer
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);						//Start PWM
   HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_1|TIM_CHANNEL_2);	//Start QEI
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1|TIM_CHANNEL_2);	//Start QEI
   //Initiate Function
-  Motor_init(&Cart_motor);
+  Motor_init(&Cart_motor, &htim3);
   Encoder_init(&Pole_encoder, &htim1, 100);
   Encoder_init(&Cart_encoder, &htim2, 100);
   Proximity_init(&Prox);
@@ -135,7 +136,7 @@ int main(void)
 	  if(HAL_GetTick()>=timestamp)
 	  {
 			timestamp = HAL_GetTick() + 10; // 100 hz
-			Motor_setCommand(&Cart_motor, mode, gain*50000);
+			Motor_run(&Cart_motor);
 
 			Pole_pulse2degree(&Pole_encoder);
 			Encoder_getFeedback(&Pole_encoder);
@@ -198,7 +199,7 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void ToSimulink(uint8_t header, Encoder* pole_encoder, Encoder* cart_encoder)
 {
-	//send low level data to simulink by UART
+	//Transmit low level data to simulink by UART
 
 	/* create data frame START*/
 	TxBuffer[0] = header; // header
@@ -222,6 +223,26 @@ void ToSimulink(uint8_t header, Encoder* pole_encoder, Encoder* cart_encoder)
 	HAL_UART_Transmit_DMA(&huart2,TxBuffer, 10);
 }
 
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	//Recieve data from simulink
+	if(huart == &huart2)
+	{
+		if(RxBuffer[0] == 62)
+		{
+			Motor_setPWM(&Cart_motor, (RxBuffer[1]<<8)|RxBuffer[2]);
+			if(RxBuffer[3]==1)
+			{
+				Motor_setDir(&Cart_motor, CCW);
+			}
+			else if(RxBuffer[3]==2)
+			{
+				Motor_setDir(&Cart_motor, CW);
+			}
+		}
+	}
+}
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	/* proximity interrupt START*/
@@ -233,7 +254,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	{
 		Prox.Prox_A = ~Prox.Prox_A;
 	}
-
 }
 
 /* USER CODE END 4 */

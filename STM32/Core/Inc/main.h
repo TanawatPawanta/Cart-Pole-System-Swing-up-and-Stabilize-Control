@@ -76,8 +76,6 @@ void Error_Handler(void);
 #define Motor_s_PWM_GPIO_Port GPIOB
 #define Motor_s_INA_Pin GPIO_PIN_2
 #define Motor_s_INA_GPIO_Port GPIOB
-#define Motor_s_INB_Pin GPIO_PIN_15
-#define Motor_s_INB_GPIO_Port GPIOB
 #define Pole_s_encoder_A_Pin GPIO_PIN_8
 #define Pole_s_encoder_A_GPIO_Port GPIOA
 #define Pole_s_encoder_B_Pin GPIO_PIN_9
