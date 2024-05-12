@@ -108,17 +108,18 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_ADC1_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
   //Star UART in DMA mode
   HAL_UART_Receive_DMA(&huart2, RxBuffer, 4);
   //Start Timer
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);						//Start PWM
-  HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_1|TIM_CHANNEL_2);	//Start QEI
-  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1|TIM_CHANNEL_2);	//Start QEI
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);						//Start Timer3 PWM mode
+  HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_1|TIM_CHANNEL_2);	//Start Timer1 QEI mmode
+  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1|TIM_CHANNEL_2);	//Start Timer2 QEI mode
   //Initiate Function
-  Motor_init(&Cart_motor, &htim3);
   Encoder_init(&Pole_encoder, &htim1, 100);
   Encoder_init(&Cart_encoder, &htim2, 100);
+  Motor_init(&Cart_motor, &htim3);
   Proximity_init(&Prox);
 
   /* USER CODE END 2 */
@@ -173,7 +174,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 100;
+  RCC_OscInitStruct.PLL.PLLN = 84;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 4;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -190,7 +191,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -249,10 +250,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	if (GPIO_Pin == GPIO_PIN_11)// proximity B
 	{
 		Prox.Prox_B = ~Prox.Prox_B;
+		Motor_setDir(&Cart_motor, Stop);
 	}
 	if (GPIO_Pin == GPIO_PIN_12)// proximity A
 	{
 		Prox.Prox_A = ~Prox.Prox_A;
+		Motor_setDir(&Cart_motor, Stop);
 	}
 }
 
